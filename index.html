@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OS Algorithm Visualizer – Banking & ATM Transaction Processing System</title>
+<style>
+:root{--bg:#0b1020;--card:#121a30;--card2:#18223f;--line:#27345c;--tx:#e8ecf8;--mut:#8f9bbf;--acc:#6c63ff;--ok:#3ecf8e;--bad:#ff5d73;--warn:#ffb454}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:Segoe UI,Roboto,Arial,sans-serif;font-size:14px;line-height:1.45}
+header{padding:18px 24px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,#141d3a,#0b1020)}
+header h1{margin:0;font-size:20px}
+header p{margin:4px 0 0;color:var(--mut);font-size:13px}
+nav{display:flex;gap:6px;flex-wrap:wrap;padding:10px 24px;border-bottom:1px solid var(--line);background:#0e1530;position:sticky;top:0;z-index:5}
+nav button{background:var(--card);color:var(--mut);border:1px solid var(--line);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600}
+nav button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+main{padding:20px 24px;max-width:1150px;margin:auto}
+.tab{display:none}.tab.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.card h2{margin:0 0 6px;font-size:16px}
+.card h3{margin:14px 0 6px;font-size:14px;color:#c9d1f0}
+.note{color:var(--mut);font-size:13px;margin:0 0 10px}
+table{border-collapse:collapse;width:100%;margin:6px 0}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:center}
+th{background:var(--card2);font-size:12px;color:#c9d1f0}
+input[type=number],select{background:#0c1328;color:var(--tx);border:1px solid var(--line);border-radius:6px;padding:5px 6px;width:70px;text-align:center}
+select{width:auto}
+button.b{background:var(--acc);color:#fff;border:0;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600;margin:3px 4px 3px 0}
+button.b.g{background:#2a3763}button.b.r{background:#a33a4a}button.b.ok{background:#1f9d6b}
+button.b:hover{filter:brightness(1.15)}
+.row{display:flex;gap:14px;flex-wrap:wrap}.row>*{flex:1;min-width:280px}
+.gantt{display:flex;height:48px;border-radius:8px;overflow:hidden;border:1px solid var(--line);margin:6px 0}
+.seg{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;min-width:0;overflow:hidden;border-right:1px solid #0006}
+.seg small{font-weight:400;opacity:.85;font-size:10px}
+.seg.idle{background:repeating-linear-gradient(45deg,#2a3354,#2a3354 6px,#1d2544 6px,#1d2544 12px);color:var(--mut)}
+.explain{background:#101d3a;border:1px solid #2c4a8a;border-left:4px solid #4f86d6;border-radius:8px;padding:10px 14px;margin:0 0 14px;font-size:13.5px}
+.explain b.h{display:block;color:#8fb4ff;margin-bottom:4px;font-size:12px;letter-spacing:.5px;text-transform:uppercase}
+.explain ul{margin:4px 0 0 18px;padding:0}
+.plain{background:#0f2a22;border:1px solid #1f6b4f;border-left:4px solid var(--ok);border-radius:8px;padding:10px 14px;margin:12px 0;font-size:13.5px}
+.plain b.h{display:block;color:var(--ok);margin-bottom:3px;font-size:12px;letter-spacing:.5px;text-transform:uppercase}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(.5);opacity:0}70%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+@keyframes grow{from{width:0}}
+@keyframes glow{0%,100%{box-shadow:0 0 6px 0 rgba(255,255,255,.2)}50%{box-shadow:0 0 22px 4px rgba(255,255,255,.45)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+@keyframes rowin{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+.tab.on{animation:fadein .35s}
+.explain,.plain{animation:fadein .5s}
+.gantt .seg{animation:fadein .5s both}
+.slot.new{animation:pop .45s}
+.buf.shake{animation:shake .45s}
+.bar>div{animation:grow .9s ease-out}
+.stage{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;margin:10px 0}
+.qbox{flex:1;min-width:150px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px;min-height:92px}
+.qbox>b{font-size:12px;color:#c9d1f0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{padding:5px 11px;border-radius:999px;color:#fff;font-weight:700;font-size:12px;animation:pop .3s}
+.cpubox{flex:0 0 200px;border:2px solid var(--acc);border-radius:12px;background:#0c1328;min-height:92px;overflow:hidden}
+.cpuin{width:100%;height:100%;min-height:88px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:24px;color:#fff;animation:glow 1.2s infinite}
+.cpuin small{font-size:11px;font-weight:400}
+.cpuin.idl{background:#1d2544;color:var(--mut);animation:none;font-size:16px}
+.arrow{align-self:center;color:var(--mut);font-size:22px}
+.clock{font-size:15px;margin:6px 0}.clock b{font-size:20px;color:var(--ok)}
+.cursor{position:absolute;top:0;bottom:0;width:3px;background:#fff;box-shadow:0 0 10px #fff;z-index:3}
+.pr{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:12px}
+.pr>span:first-child{width:28px;font-weight:700}.pr>span:last-child{width:230px;color:var(--mut)}
+.pb{flex:1;height:12px;background:#0a0f20;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.pb>div{height:100%}
+.cmp{height:12px;background:#0a0f20;border-radius:6px;overflow:hidden;min-width:120px}
+.cmp>div{height:100%;animation:grow .9s}
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-weight:700;font-size:12px}
+.badge.ok{background:#12432f;color:var(--ok)}.badge.bad{background:#4a1823;color:var(--bad)}.badge.warn{background:#4a3513;color:var(--warn)}
+.stat{display:inline-block;background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:4px 6px 4px 0}
+.stat b{color:var(--ok)}
+.buf{display:flex;gap:10px;margin:10px 0}
+.slot{flex:1;height:60px;border:2px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--mut);flex-direction:column;font-size:13px}
+.slot.full{border:2px solid var(--acc);background:#1b2350;color:#fff}
+.sem{display:inline-block;text-align:center;background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:8px 16px;margin:4px 6px 4px 0;min-width:80px}
+.sem span{display:block;font-size:22px;font-weight:800}.sem small{color:var(--mut)}
+.log{background:#0a0f20;border:1px solid var(--line);border-radius:8px;padding:8px 10px;height:170px;overflow:auto;font-family:Consolas,monospace;font-size:12px}
+.log div{padding:1px 0}.log .w{color:var(--warn)}.log .g{color:var(--ok)}.log .e{color:var(--bad)}
+.mem{margin:8px 0}.mem .lbl{display:flex;justify-content:space-between;font-size:12px;color:var(--mut)}
+.bar{height:26px;background:repeating-linear-gradient(45deg,#1a2347,#1a2347 6px,#141b38 6px,#141b38 12px);border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.bar>div{height:100%;display:flex;align-items:center;padding-left:8px;font-size:12px;font-weight:700;color:#fff}
+.pipe{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;margin:10px 0}
+.pipe .st{flex:1;min-width:150px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px}
+.pipe .st b{display:block;color:#c9d1f0;margin-bottom:3px}
+.pipe .ar{align-self:center;color:var(--mut);font-size:20px}
+.ok-t{color:var(--ok)}.bad-t{color:var(--bad)}.warn-t{color:var(--warn)}
+code{background:#0a0f20;padding:1px 6px;border-radius:4px}
+@media(max-width:600px){main{padding:12px}nav{padding:8px 12px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>OS Algorithm Visualizer — Banking & ATM Transaction Processing System</h1>
+  <p>Operating Systems · Problem 5 · Modules: CPU Scheduling · Producer–Consumer · Banker's Algorithm · Memory Management · Integrated Pipeline</p>
+</header>
+<nav id="nav"></nav>
+<main>
+
+<!-- ============ OVERVIEW ============ -->
+<section class="tab on" id="t-over">
+  <div class="card">
+    <h2>Problem Context</h2>
+    <p class="note">A bank's central server receives ATM and mobile-app requests continuously. The OS must decide which transaction runs next (CPU scheduling), how requests enter the system safely (producer–consumer), whether shared resources can be granted without deadlock (Banker's Algorithm), and where each transaction module sits in memory (First Fit / Best Fit).</p>
+    <table>
+      <tr><th>Transaction</th><th>Meaning</th></tr>
+      <tr><td>T1</td><td>Fund Transfer</td></tr>
+      <tr><td>T2</td><td>ATM Withdrawal</td></tr>
+      <tr><td>T3</td><td>Balance Inquiry</td></tr>
+      <tr><td>T4</td><td>Deposit</td></tr>
+      <tr><td>T5</td><td>Record Update</td></tr>
+    </table>
+    <table>
+      <tr><th>Banking resource</th><th>Used by</th></tr>
+      <tr><td>A = Database connections (10)</td><td>Banker's Algorithm</td></tr>
+      <tr><td>B = Transaction-service slots (5)</td><td>Banker's Algorithm</td></tr>
+      <tr><td>C = Ledger write locks (8)</td><td>Banker's Algorithm</td></tr>
+      <tr><td>Request buffer (3 slots)</td><td>Producer–Consumer</td></tr>
+      <tr><td>Memory 1250 KB (5 fixed partitions)</td><td>Memory Management</td></tr>
+      <tr><td>1 CPU, non-preemptive</td><td>CPU Scheduling</td></tr>
+    </table>
+    <div class="explain"><b class="h">How to explain the whole project in 30 seconds</b>
+      A bank server gets many requests at once (withdraw, deposit, transfer...). The OS has 4 jobs:
+      <ul>
+        <li><b>Producer–Consumer:</b> requests wait in a small queue (buffer) so nothing is lost or mixed up.</li>
+        <li><b>Memory Management:</b> each request is given a memory slot to work in.</li>
+        <li><b>Banker's Algorithm:</b> before giving database connections / locks, check it will not cause a deadlock (two requests waiting for each other forever).</li>
+        <li><b>CPU Scheduling:</b> the CPU runs the quick requests first so everyone waits less.</li>
+      </ul>
+      Demo order: Integrated Pipeline tab first for the big picture, then show each module tab for the detail.
+    </div>
+    <p class="note">Use the tabs above. Every module is pre-loaded with the same data as the case-study report so your outputs can be compared with the hand calculations. All values are editable.</p>
+  </div>
+</section>
+
+<!-- ============ CPU ============ -->
+<section class="tab" id="t-cpu">
+  <div class="card">
+    <h2>1. CPU Scheduling — ATM transactions on the CPU</h2>
+    <div class="explain"><b class="h">In simple words</b>
+      The bank has only one CPU, so transactions must take turns. Think of one cashier counter with a queue.
+      <ul>
+        <li><b>FCFS</b> = first come, first served (a long transfer can make everyone behind it wait).</li>
+        <li><b>SJF</b> = the shortest job goes first (a quick balance inquiry does not wait behind a long job).</li>
+        <li><b>Priority</b> = the most urgent transaction goes first (1 = highest).</li>
+        <li><b>Round Robin</b> = everyone gets a short turn (time quantum), then goes to the back of the queue, so it is fair.</li>
+        <li><b>Waiting time</b> = how long a transaction sits in the queue. <b>Turnaround</b> = waiting + running.</li>
+      </ul>
+      <b>What to say:</b> "SJF gives a low average waiting time, Priority serves urgent work first, and Round Robin is fair to everyone." Click <b>Run</b> and watch the animation.
+    </div>
+    <p class="note">Four algorithms: FCFS, SJF, Priority and Round Robin. Formulas: TAT = CT − AT, WT = TAT − BT. Edit arrival (AT), burst (BT), priority (priority values are assumed for this demo) and the Round Robin quantum. FCFS, SJF and Priority are non-preemptive; Round Robin switches after each quantum.</p>
+    <table id="cpuTbl"></table>
+    <button class="b g" onclick="cpuAdd()">+ Add transaction</button>
+    <button class="b g" onclick="cpuReset()">Reset to report data</button>
+    Round Robin time quantum: <input type="number" id="cpuQ" value="2" min="1" max="10">
+    <button class="b" onclick="cpuRun(true)">▶ Run all 4 algorithms &amp; animate</button>
+    <div id="cpuAnim"></div>
+    <div id="cpuOut"></div>
+  </div>
+</section>
+
+<!-- ============ PC ============ -->
+<section class="tab" id="t-pc">
+  <div class="card">
+    <h2>2. Producer–Consumer — Request buffer (bounded buffer)</h2>
+    <div class="explain"><b class="h">In simple words</b>
+      ATMs and the mobile app <b>produce</b> requests. Processing threads <b>consume</b> them. In between is a small waiting area (the buffer) with only N slots, like a token counter with 3 trays.
+      <ul>
+        <li><b>empty</b> = free slots. If it is 0, the producer must wait.</li>
+        <li><b>full</b> = filled slots. If it is 0, the consumer must wait.</li>
+        <li><b>mutex</b> = a lock so only one thread touches the buffer at a time (prevents two threads writing to the same slot).</li>
+      </ul>
+      <b>Try this:</b> click "Run report demo". Watch the 4th request get blocked, then go in as soon as one is consumed.
+    </div>
+    <p class="note">ATM terminals / mobile app (producers) put transaction requests into a bounded buffer; processing threads (consumers) take them out. Semaphores: <code>empty = N</code>, <code>full = 0</code>, <code>mutex = 1</code>.</p>
+    <label>Buffer size N: <input type="number" id="pcN" value="3" min="1" max="8" onchange="pcReset()"></label>
+    <div style="margin:8px 0">
+      <button class="b ok" onclick="pcProduce('ATM Terminal 1')">ATM Terminal 1 → produce</button>
+      <button class="b ok" onclick="pcProduce('Mobile App 2')">Mobile App 2 → produce</button>
+      <button class="b ok" onclick="pcProduce('ATM Terminal 3')">ATM Terminal 3 → produce</button>
+      <button class="b r" onclick="pcConsume()">Processing thread → consume</button>
+      <button class="b" onclick="pcDemo()">Run report demo (steps 1–7)</button>
+      <button class="b g" onclick="pcReset()">Reset</button>
+    </div>
+    <div class="buf" id="pcBuf"></div>
+    <div class="plain"><b class="h">What is happening right now</b><span id="pcPlain"></span></div>
+    <div id="pcSem"></div>
+    <div class="row">
+      <div><h3>Waiting (blocked) threads</h3><div id="pcBlocked" class="note"></div></div>
+      <div><h3>Execution log</h3><div class="log" id="pcLog"></div></div>
+    </div>
+    <h3>Step table</h3>
+    <table id="pcSteps"></table>
+  </div>
+</section>
+
+<!-- ============ BANKER ============ -->
+<section class="tab" id="t-bank">
+  <div class="card">
+    <h2>3. Deadlock Avoidance — Banker's Algorithm</h2>
+    <div class="explain"><b class="h">In simple words</b>
+      <b>Deadlock</b> = two transactions each hold a lock the other needs, so both wait forever. A banker lends money only if he can still get everyone paid back. Here the OS "lends" database connections (A), service slots (B) and ledger locks (C) only if every transaction can still finish.
+      <ul>
+        <li><b>Allocation</b> = what a transaction holds now. <b>Max</b> = the most it will ever need.</li>
+        <li><b>Need</b> = Max − Allocation (what it may still ask for). <b>Available</b> = what is free in the bank.</li>
+        <li><b>Safe sequence</b> = an order in which every transaction can finish one by one. If one exists, the state is safe.</li>
+      </ul>
+      <b>Try this:</b> click T3 (3 1 1). It looks fine but leaves too little free, so it is denied. That denial is the deadlock being avoided.
+    </div>
+    <p class="note">Resources: A = database connections, B = transaction-service slots, C = ledger write locks. Need = Max − Allocation. Available = Total − ΣAllocation.</p>
+    <div>Total resources:
+      A <input type="number" id="bkTA" value="10" min="0"> B <input type="number" id="bkTB" value="5" min="0"> C <input type="number" id="bkTC" value="8" min="0">
+    </div>
+    <table id="bkTbl"></table>
+    <button class="b" onclick="bkRun()">Calculate Need &amp; Safety Check</button>
+    <button class="b g" onclick="bkReset()">Reset to report data</button>
+    <div id="bkOut"></div>
+    <h3>Resource request test</h3>
+    <div>Transaction
+      <select id="bkP"></select>
+      requests A <input type="number" id="bkRA" value="1" min="0"> B <input type="number" id="bkRB" value="0" min="0"> C <input type="number" id="bkRC" value="1" min="0">
+      <button class="b" onclick="bkRequest()">Test request</button>
+      <button class="b g" onclick="bkPreset(1,[1,0,1])">T2 (1 0 1)</button>
+      <button class="b g" onclick="bkPreset(2,[3,1,1])">T3 (3 1 1)</button>
+      <button class="b g" onclick="bkPreset(4,[3,3,2])">T5 (3 3 2)</button>
+    </div>
+    <div id="bkReq"></div>
+  </div>
+</section>
+
+<!-- ============ MEMORY ============ -->
+<section class="tab" id="t-mem">
+  <div class="card">
+    <h2>4. Memory Management — Placing transaction modules in partitions</h2>
+    <div class="explain"><b class="h">In simple words</b>
+      Memory is split into fixed boxes (partitions). Each transaction needs a box big enough for it. Like parking cars in slots of different sizes.
+      <ul>
+        <li><b>First Fit</b> = pick the first box that is big enough (fast, but may waste big boxes on small jobs).</li>
+        <li><b>Best Fit</b> = pick the smallest box that is big enough (less waste, leaves big boxes for big jobs).</li>
+        <li><b>Waste</b> = box size − transaction size (internal fragmentation). If a job fits no free box it must wait.</li>
+      </ul>
+      <b>What to say:</b> "In our data First Fit left T5 waiting, while Best Fit placed all five."
+    </div>
+    <p class="note">Fixed partitions, one transaction per partition. Internal fragmentation = block size − process size. A process that fits no free block waits (external fragmentation shown).</p>
+    <div class="row">
+      <div><h3>Partitions (KB)</h3><table id="memB"></table>
+        <button class="b g" onclick="memAddB()">+ Block</button></div>
+      <div><h3>Transactions (size KB)</h3><table id="memP"></table>
+        <button class="b g" onclick="memAddP()">+ Transaction</button></div>
+    </div>
+    <button class="b" onclick="memRun()">Run First Fit &amp; Best Fit</button>
+    <button class="b g" onclick="memReset()">Reset to report data</button>
+    <div id="memOut"></div>
+  </div>
+</section>
+
+<!-- ============ PIPELINE ============ -->
+<section class="tab" id="t-int">
+  <div class="card">
+    <h2>5. Integrated Pipeline — one ATM transaction through all four mechanisms</h2>
+    <div class="explain"><b class="h">In simple words</b>
+      This is the whole bank server in one view. A request must pass 4 gates before it runs:
+      <ul>
+        <li><b>Gate 1 (buffer):</b> it waits its turn in the queue, safely.</li>
+        <li><b>Gate 2 (memory):</b> it gets a memory box. No box means it waits.</li>
+        <li><b>Gate 3 (Banker's):</b> its resource request is allowed only if it is safe.</li>
+        <li><b>Gate 4 (CPU):</b> the ones that passed are run shortest-first.</li>
+      </ul>
+      <b>Try this:</b> click "Run integrated pipeline", then "Make T3 request unsafe" and run again to see T3 held back while the others still finish.
+    </div>
+    <div class="pipe">
+      <div class="st"><b>1. Bounded buffer</b>ATM/app requests enter the buffer (producer–consumer)</div><div class="ar">→</div>
+      <div class="st"><b>2. Memory block</b>Consumer finds a partition (Best Fit / First Fit)</div><div class="ar">→</div>
+      <div class="st"><b>3. Banker's check</b>Resource request granted only if safe</div><div class="ar">→</div>
+      <div class="st"><b>4. CPU time</b>Admitted transactions ordered by SJF</div>
+    </div>
+    <p class="note">Edit the shared transaction data below (arrival, burst, memory size, resource request). The Banker's state starts from the Banker tab's Allocation/Max/Available. Requests are tested one by one in the order they leave the buffer.</p>
+    <div>Memory strategy:
+      <select id="intFit"><option value="best">Best Fit</option><option value="first">First Fit</option></select>
+      Buffer size: <input type="number" id="intN" value="3" min="1" max="8">
+    </div>
+    <table id="intTbl"></table>
+    <button class="b" onclick="intRun()">Run integrated pipeline</button>
+    <button class="b g" onclick="intReset()">Reset</button>
+    <button class="b g" onclick="intUnsafe()">Make T3 request unsafe (3 1 1)</button>
+    <div id="intOut"></div>
+  </div>
+</section>
+</main>
+
+<script>
+/* ---------- helpers ---------- */
+const COLORS=['#6c63ff','#1e9fb0','#a45fb5','#3b9c68','#d37a35','#c4536b','#4f86d6','#8b8f3a'];
+const col=i=>COLORS[i%COLORS.length];
+const $=id=>document.getElementById(id);
+const fix=n=>(Math.round(n*100)/100).toFixed(2);
+const tabs=[['over','Overview'],['cpu','CPU Scheduling'],['pc','Producer–Consumer'],['bank',"Banker's Algorithm"],['mem','Memory Management'],['int','Integrated Pipeline']];
+$('nav').innerHTML=tabs.map(t=>`<button data-t="${t[0]}" onclick="showTab('${t[0]}')">${t[1]}</button>`).join('');
+function showTab(t){
+  document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('on',e.id==='t-'+t));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  if(t==='int')intRender();
+}
+showTab('over');
+const NAMES={T1:'Fund Transfer',T2:'ATM Withdrawal',T3:'Balance Inquiry',T4:'Deposit',T5:'Record Update'};
+const nm=n=>NAMES[n]?` (${NAMES[n]})`:'';
+
+/* ============ CPU SCHEDULING ============ */
+const CPU_DEF=[['T1',0,6,3],['T2',1,4,1],['T3',2,2,4],['T4',3,3,2],['T5',4,5,5]];
+let cpuData=JSON.parse(JSON.stringify(CPU_DEF));
+function cpuDraw(){
+  $('cpuTbl').innerHTML='<tr><th>Process</th><th>Transaction</th><th>Arrival (AT)</th><th>Burst (BT)</th><th>Priority (1 = highest)</th><th></th></tr>'+
+  cpuData.map((p,i)=>`<tr><td><b>${p[0]}</b></td><td>${NAMES[p[0]]||'Custom'}</td>
+  <td><input type="number" min="0" value="${p[1]}" onchange="cpuData[${i}][1]=+this.value"></td>
+  <td><input type="number" min="1" value="${p[2]}" onchange="cpuData[${i}][2]=Math.max(1,+this.value)"></td>
+  <td><input type="number" min="1" value="${p[3]}" onchange="cpuData[${i}][3]=Math.max(1,+this.value)"></td>
+  <td><button class="b r" onclick="cpuData.splice(${i},1);cpuDraw()">✕</button></td></tr>`).join('');
+}
+function cpuAdd(){cpuData.push(['T'+(cpuData.length+1),0,3,3]);cpuDraw()}
+function cpuReset(){anPause();cpuData=JSON.parse(JSON.stringify(CPU_DEF));cpuDraw();$('cpuOut').innerHTML='';$('cpuAnim').innerHTML=''}
+function schedule(list,algo){
+  const ps=list.map(p=>({n:p[0],at:p[1],bt:p[2],pr:p[3]??0,done:false}));
+  const order=[];let t=0,left=ps.length;
+  while(left>0){
+    const ready=ps.filter(p=>!p.done&&p.at<=t);
+    if(!ready.length){const nx=Math.min(...ps.filter(p=>!p.done).map(p=>p.at));order.push({n:'idle',s:t,e:nx});t=nx;continue}
+    let p;
+    if(algo==='fcfs')p=ready.sort((a,b)=>a.at-b.at)[0];
+    else if(algo==='priority')p=ready.sort((a,b)=>a.pr-b.pr||a.at-b.at)[0];
+    else p=ready.sort((a,b)=>a.bt-b.bt||a.at-b.at)[0];
+    p.s=t;t+=p.bt;p.ct=t;p.tat=p.ct-p.at;p.wt=p.tat-p.bt;p.done=true;left--;
+    order.push({n:p.n,s:p.s,e:p.ct});
+  }
+  const avgW=ps.reduce((a,p)=>a+p.wt,0)/ps.length,avgT=ps.reduce((a,p)=>a+p.tat,0)/ps.length;
+  return{ps,order,avgW,avgT};
+}
+function ganttHTML(order,all){
+  const total=order[order.length-1].e-order[0].s||1;
+  return '<div class="gantt">'+order.map(o=>{
+    const w=(o.e-o.s)/total*100;
+    if(o.n==='idle')return `<div class="seg idle" style="width:${w}%">idle<small>${o.s}–${o.e}</small></div>`;
+    const idx=all.indexOf(o.n);
+    return `<div class="seg" style="width:${w}%;background:${col(idx)}">${o.n}<small>${o.s}–${o.e}</small></div>`}).join('')+'</div>';
+}
+/* ---- Round Robin ---- */
+function rrSched(list,q){
+  const ps=list.map(p=>({n:p[0],at:p[1],bt:p[2],pr:p[3]??0,rem:p[2]}));
+  const sorted=ps.slice().sort((a,b)=>a.at-b.at);
+  const n=ps.length,queue=[],order=[];let t=0,i=0,done=0;
+  while(done<n){
+    while(i<n&&sorted[i].at<=t)queue.push(sorted[i++]);
+    if(!queue.length){const nx=sorted[i].at;order.push({n:'idle',s:t,e:nx});t=nx;continue}
+    const p=queue.shift(),run=Math.min(q,p.rem);
+    order.push({n:p.n,s:t,e:t+run});t+=run;p.rem-=run;
+    while(i<n&&sorted[i].at<=t)queue.push(sorted[i++]);
+    if(p.rem>0)queue.push(p);else{p.ct=t;p.tat=p.ct-p.at;p.wt=p.tat-p.bt;done++}
+  }
+  for(let k=order.length-1;k>0;k--){if(order[k].n===order[k-1].n&&order[k].s===order[k-1].e){order[k-1].e=order[k].e;order.splice(k,1)}}
+  const avgW=ps.reduce((a,p)=>a+p.wt,0)/n,avgT=ps.reduce((a,p)=>a+p.tat,0)/n;
+  return{ps,order,avgW,avgT};
+}
+const ALG_NAME={fcfs:'FCFS',sjf:'SJF (non-preemptive)',priority:'Priority (non-preemptive)',rr:'Round Robin'};
+const ALGS=['fcfs','sjf','priority','rr'];
+let cpuRes=null,anim={alg:'fcfs',t:0,T:0,timer:null,speed:1};
+
+function cpuRun(autoplay){
+  if(!cpuData.length){$('cpuOut').innerHTML='<p class="bad-t">Add at least one transaction.</p>';return}
+  anPause();
+  const q=Math.max(1,+$('cpuQ').value||2);$('cpuQ').value=q;
+  cpuRes={fcfs:schedule(cpuData,'fcfs'),sjf:schedule(cpuData,'sjf'),priority:schedule(cpuData,'priority'),rr:rrSched(cpuData,q),q};
+  const names=cpuData.map(p=>p[0]);
+  const maxW=Math.max(...ALGS.map(a=>cpuRes[a].avgW),0.01);
+  const best=ALGS.reduce((b,a)=>cpuRes[a].avgW<cpuRes[b].avgW?a:b,'fcfs');
+  let h=`<h3>Comparison of all 4 algorithms</h3><table><tr><th>Algorithm</th><th>Avg WT</th><th>Avg TAT</th><th>Average waiting time (shorter bar = better)</th></tr>`+
+    ALGS.map(a=>`<tr><td>${ALG_NAME[a]}${a==='rr'?' (q='+q+')':''}${a===best?' <span class="badge ok">lowest WT</span>':''}</td><td>${fix(cpuRes[a].avgW)}</td><td>${fix(cpuRes[a].avgT)}</td><td style="text-align:left"><div class="cmp"><div style="width:${cpuRes[a].avgW/maxW*100}%;background:${a===best?'var(--ok)':'var(--acc)'}"></div></div></td></tr>`).join('')+'</table>';
+  ALGS.forEach(a=>{
+    const r=cpuRes[a];
+    h+=`<h3>${ALG_NAME[a]}${a==='rr'?' (time quantum = '+q+')':''}</h3>${ganttHTML(r.order,names)}
+    <table><tr><th>Process</th><th>AT</th><th>BT</th>${a==='priority'?'<th>Priority</th>':''}<th>Completion</th><th>Turnaround (CT−AT)</th><th>Waiting (TAT−BT)</th></tr>`+
+    r.ps.map(p=>`<tr><td>${p.n}${nm(p.n)}</td><td>${p.at}</td><td>${p.bt}</td>${a==='priority'?'<td>'+p.pr+'</td>':''}<td>${p.ct}</td><td>${p.tat}</td><td>${p.wt}</td></tr>`).join('')+
+    `<tr><th colspan="${a==='priority'?4:3}">Average</th><th></th><th>${fix(r.avgT)}</th><th>${fix(r.avgW)}</th></tr></table>`;
+  });
+  const sh=cpuData.slice().sort((a,b)=>a[2]-b[2])[0][0];
+  const wOf=a=>cpuRes[a].ps.find(p=>p.n===sh).wt;
+  const top=cpuData.slice().sort((a,b)=>a[3]-b[3]||a[1]-b[1])[0][0];
+  const cs=cpuRes.rr.order.filter(s=>s.n!=='idle').length-1;
+  h+=`<div class="plain"><b class="h">What this means</b>
+  <b>${ALG_NAME[best]}</b> gives the lowest average waiting time (${fix(cpuRes[best].avgW)}) on this data.<br>
+  • <b>FCFS</b> is simple but short jobs wait behind long ones: ${sh}${nm(sh)} waits ${wOf('fcfs')} here.<br>
+  • <b>SJF</b> lets the shortest job go first: ${sh} waits only ${wOf('sjf')}. Best for many quick inquiries/deposits.<br>
+  • <b>Priority</b> runs the most urgent transaction first (here ${top}${nm(top)} has priority 1), even if it is long. Good for urgent work, but low-priority jobs may wait a long time.<br>
+  • <b>Round Robin</b> gives everyone a turn of ${q} unit(s), so nobody waits for long to get started and it is fair. The cost is more switching (${cs} context switches here).</div>`;
+  $('cpuOut').innerHTML=h;
+  cpuAnimInit();
+  if(autoplay===true)anPlay();
+}
+
+/* ---- live CPU animation ---- */
+function cpuAnimInit(){
+  $('cpuAnim').innerHTML=`<div class="card" style="background:#0e1530">
+  <h3 style="margin-top:0">▶ Live CPU animation</h3>
+  <div>Algorithm: <select id="anAlg" onchange="anSel()">${ALGS.map(a=>`<option value="${a}" ${a===anim.alg?'selected':''}>${ALG_NAME[a]}</option>`).join('')}</select>
+  <button class="b ok" onclick="anPlay()">▶ Play</button><button class="b g" onclick="anPause()">⏸ Pause</button>
+  <button class="b g" onclick="anStep()">⏭ Next event</button><button class="b g" onclick="anReset()">⟲ Reset</button>
+  Speed <select id="anSpd" onchange="anim.speed=+this.value"><option value="0.5">0.5×</option><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select></div>
+  <div class="stage">
+    <div class="qbox"><b>Ready queue (waiting for CPU)</b><div class="chips" id="anQ"></div></div><div class="arrow">➜</div>
+    <div class="cpubox" id="anCpu"></div><div class="arrow">➜</div>
+    <div class="qbox"><b>Finished</b><div class="chips" id="anDone"></div></div>
+  </div>
+  <div class="clock">Time: <b id="anT">0.0</b> / <span id="anTT"></span></div>
+  <div id="anG"></div><div id="anBars"></div><p class="note" id="anMsg"></p></div>`;
+  $('anSpd').value=anim.speed;
+  anim.T=cpuRes[anim.alg].order[cpuRes[anim.alg].order.length-1].e;anim.t=0;
+  anRender();
+}
+function anRender(){
+  const r=cpuRes[anim.alg],t=anim.t,T=anim.T;
+  const seg=r.order.find(s=>t>=s.s&&t<s.e);
+  const ex=p=>r.order.filter(s=>s.n===p.n).reduce((a,s)=>a+Math.max(0,Math.min(t,s.e)-s.s),0);
+  const idx=n=>cpuData.findIndex(p=>p[0]===n);
+  const st=r.ps.map(p=>({p,e:ex(p),state:t>=p.ct-1e-9?'done':(seg&&seg.n===p.n?'run':(t>=p.at?'ready':'wait'))}));
+  const nextStart=p=>{const s=r.order.find(s=>s.n===p.n&&s.s>=t-1e-9);return s?s.s:1e9};
+  $('anQ').innerHTML=st.filter(x=>x.state==='ready').sort((a,b)=>nextStart(a.p)-nextStart(b.p)).map(x=>`<span class="chip" style="background:${col(idx(x.p.n))}">${x.p.n}</span>`).join('')||'<span class="note">empty</span>';
+  $('anDone').innerHTML=st.filter(x=>x.state==='done').map(x=>`<span class="chip" style="background:${col(idx(x.p.n))}">${x.p.n}</span>`).join('')||'<span class="note">none yet</span>';
+  let msg;
+  if(t>=T-1e-9){$('anCpu').innerHTML='<div class="cpuin idl">All done ✔</div>';msg='Every transaction has finished.'}
+  else if(seg&&seg.n!=='idle'){const p=r.ps.find(x=>x.n===seg.n);const rem=Math.max(0,p.bt-ex(p));$('anCpu').innerHTML=`<div class="cpuin" style="background:${col(idx(seg.n))}">${seg.n}<small>${NAMES[seg.n]||'running'}</small></div>`;
+    msg=`At time ${t.toFixed(1)}: ${seg.n}${nm(seg.n)} is running on the CPU (${rem.toFixed(1)} unit(s) left). ${anim.alg==='rr'?'It will be moved to the back of the queue if its time quantum ends before it finishes.':''}`}
+  else{$('anCpu').innerHTML='<div class="cpuin idl">CPU idle</div>';msg=`At time ${t.toFixed(1)}: the CPU is idle, waiting for the next arrival.`}
+  $('anT').textContent=t.toFixed(1);$('anTT').textContent=T;$('anMsg').textContent=msg;
+  $('anG').innerHTML='<div class="gantt" style="position:relative;overflow:hidden">'+r.order.map(s=>{
+    const w=(s.e-s.s)/T*100,fill=Math.max(0,Math.min(1,(t-s.s)/(s.e-s.s)))*100,idle=s.n==='idle';
+    return `<div class="seg ${idle?'idle':''}" style="width:${w}%;position:relative;background:#141b38;animation:none"><div style="position:absolute;left:0;top:0;bottom:0;width:${fill}%;background:${idle?'#2a3354':col(idx(s.n))}"></div><span style="position:relative;z-index:1;text-align:center">${s.n}<br><small>${s.s}–${s.e}</small></span></div>`}).join('')+`<div class="cursor" style="left:calc(${t/T*100}% - 1px)"></div></div>`;
+  $('anBars').innerHTML=st.map(x=>{
+    const c=col(idx(x.p.n)),txt={run:'running now',ready:'waiting in queue',done:'finished at '+x.p.ct,wait:'arrives at '+x.p.at}[x.state];
+    return `<div class="pr"><span>${x.p.n}</span><div class="pb"><div style="width:${x.e/x.p.bt*100}%;background:${c}"></div></div><span>${x.e.toFixed(1)} / ${x.p.bt} done · ${txt}</span></div>`}).join('');
+}
+function anPlay(){
+  if(!cpuRes||anim.timer)return;
+  if(anim.t>=anim.T-1e-9)anim.t=0;
+  anim.timer=setInterval(()=>{anim.t=Math.min(anim.T,anim.t+0.04*anim.speed);anRender();if(anim.t>=anim.T-1e-9)anPause()},40);
+}
+function anPause(){if(anim.timer){clearInterval(anim.timer);anim.timer=null}}
+function anReset(){anPause();anim.t=0;if(cpuRes)anRender()}
+function anSel(){anPause();anim.alg=$('anAlg').value;const o=cpuRes[anim.alg].order;anim.T=o[o.length-1].e;anim.t=0;anRender()}
+function anStep(){
+  anPause();const r=cpuRes[anim.alg];
+  const pts=[...new Set(r.order.flatMap(s=>[s.s,s.e]).concat(cpuData.map(p=>p[1])))].sort((a,b)=>a-b);
+  const nx=pts.find(x=>x>anim.t+1e-9);anim.t=nx===undefined?anim.T:nx;anRender();
+}
+
+function cpuRunOld(){
+  if(!cpuData.length){$('cpuOut').innerHTML='<p class="bad-t">Add at least one transaction.</p>';return}
+  const names=cpuData.map(p=>p[0]);
+  const f=schedule(cpuData,'fcfs'),s=schedule(cpuData,'sjf');
+  const tbl=(r)=>`<table><tr><th>Process</th><th>AT</th><th>BT</th><th>Completion</th><th>Turnaround (CT−AT)</th><th>Waiting (TAT−BT)</th></tr>`+
+    r.ps.map(p=>`<tr><td>${p.n}${nm(p.n)}</td><td>${p.at}</td><td>${p.bt}</td><td>${p.ct}</td><td>${p.tat}</td><td>${p.wt}</td></tr>`).join('')+
+    `<tr><th colspan="4">Average</th><th>${fix(r.avgT)}</th><th>${fix(r.avgW)}</th></tr></table>`;
+  const better=s.avgW<f.avgW?`SJF reduces average waiting time by ${fix(f.avgW-s.avgW)} units.`:(s.avgW===f.avgW?'Both give the same average waiting time for this data.':'FCFS is better on this data.');
+  $('cpuOut').innerHTML=`<h3>FCFS</h3>${ganttHTML(f.order,names)}${tbl(f)}
+  <h3>SJF (non-preemptive)</h3>${ganttHTML(s.order,names)}${tbl(s)}
+  <span class="stat">FCFS avg WT <b>${fix(f.avgW)}</b> · avg TAT <b>${fix(f.avgT)}</b></span>
+  <span class="stat">SJF avg WT <b>${fix(s.avgW)}</b> · avg TAT <b>${fix(s.avgT)}</b></span>
+  <div class="plain"><b class="h">What this means</b>${better} ${(()=>{const sh=s.ps.slice().sort((a,b)=>a.bt-b.bt)[0],fh=f.ps.find(p=>p.n===sh.n);return `The shortest request, ${sh.n}${nm(sh.n)}, waits only <b>${sh.wt}</b> unit(s) under SJF but <b>${fh.wt}</b> under FCFS. That is why SJF suits banking: most requests (inquiries, deposits) are short.`})()}</div>`;
+}
+
+/* ============ PRODUCER-CONSUMER ============ */
+let pc;
+const TYPES=['Withdrawal','Deposit','Fund Transfer','Balance Inquiry','Record Update'];
+function pcReset(){
+  const N=Math.max(1,Math.min(8,+$('pcN').value||3));$('pcN').value=N;
+  pc={N,buf:[],produced:0,consumed:0,rid:1,bp:[],bc:0,log:[],steps:[],tick:0,timers:[]};
+  pc.steps.push({a:'Start',e:N,f:0,b:'–'});
+  pcDraw();
+}
+function pcLog(msg,c){pc.log.push([msg,c||'']);}
+function pcStep(a){pc.steps.push({a,e:pc.N-pc.buf.length,f:pc.buf.length,b:pc.buf.length?pc.buf.map(x=>x.id).join(', '):'–'})}
+function pcInsert(item,unblocked){
+  // wait(empty); wait(mutex); add; signal(mutex); signal(full)
+  pc.buf.push(item);pc.produced++;pc.lastId=item.id;
+  pcLog(`${item.src}: wait(empty) wait(mutex) → ${item.id} (${item.type}) inserted; signal(mutex) signal(full)`,'g');
+  pcStep(`${item.src} inserts ${item.id}${unblocked?' (unblocked)':''}`);
+  if(pc.bc>0){pc.bc--;pcLog('A blocked consumer is woken by signal(full)','g');pcRemove(true)}
+}
+function pcRemove(woken){
+  const it=pc.buf.shift();pc.consumed++;
+  pcLog(`Consumer: wait(full) wait(mutex) → removes ${it.id} (${it.type}); signal(mutex) signal(empty); processing ${it.id}`,'g');
+  pcStep(`Consumer removes ${it.id}${woken?' (unblocked)':''}`);
+  if(pc.bp.length){const nx=pc.bp.shift();pcLog(`Blocked producer ${nx.src} is woken by signal(empty)`,'g');pcInsert(nx,true)}
+}
+function pcProduce(src){
+  const item={id:'R'+pc.rid++,src,type:TYPES[(pc.rid-2)%TYPES.length]};
+  if(pc.buf.length>=pc.N){
+    pc.bp.push(item);pc.shake=true;
+    pcLog(`${src}: wait(empty) → buffer FULL, ${item.id} blocked`,'w');
+    pcStep(`${src} tries ${item.id}`);
+    pc.steps[pc.steps.length-1].b='blocked, buffer full';
+  }else pcInsert(item,false);
+  pcDraw();
+}
+function pcConsume(){
+  if(!pc.buf.length){
+    pc.bc++;pcLog('Consumer: wait(full) → buffer EMPTY, consumer blocked','w');pcStep('Consumer tries to remove (empty)');
+    pc.steps[pc.steps.length-1].b='consumer blocked, buffer empty';
+  }else pcRemove(false);
+  pcDraw();
+}
+function pcDemo(){
+  pcReset();
+  const seq=[()=>pcProduce('ATM Terminal 1'),()=>pcProduce('Mobile App 2'),()=>pcProduce('ATM Terminal 1'),()=>pcProduce('Mobile App 2'),pcConsume,pcConsume];
+  seq.forEach((f,i)=>setTimeout(f,i*800+200));
+}
+function pcDraw(){
+  let h='';
+  for(let i=0;i<pc.N;i++){const it=pc.buf[i];h+=it?`<div class="slot full ${it.id===pc.lastId?'new':''}">${it.id}<small>${it.type}</small></div>`:'<div class="slot">empty</div>'}
+  $('pcBuf').innerHTML=h;pc.lastId=null;
+  if(pc.shake){const b=$('pcBuf');b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');pc.shake=false}
+  const bf=pc.buf.length===pc.N;
+  $('pcSem').innerHTML=`<div class="sem"><span>${pc.N-pc.buf.length}</span><small>empty</small></div><div class="sem"><span>${pc.buf.length}</span><small>full</small></div><div class="sem"><span>1</span><small>mutex (free)</small></div><div class="sem"><span>${pc.produced}</span><small>produced</small></div><div class="sem"><span>${pc.consumed}</span><small>consumed</small></div>
+  <p class="note">Check: produced − consumed = ${pc.produced-pc.consumed} = items in buffer (${pc.buf.length}) ${pc.produced-pc.consumed===pc.buf.length?'<span class="ok-t">✔ consistent, no lost update</span>':'<span class="bad-t">✘ inconsistent</span>'} ${bf?'<span class="badge warn">Buffer FULL – producers must wait</span>':''}${pc.buf.length===0?'<span class="badge warn">Buffer EMPTY – consumers must wait</span>':''}</p>`;
+  $('pcPlain').innerHTML=pc.buf.length===0&&!pc.bp.length?'The buffer is empty. Producers can add requests freely. A consumer arriving now would have to wait.':
+    bf?`The buffer is full (${pc.N}/${pc.N}). ${pc.bp.length?pc.bp.map(x=>x.src).join(', ')+' must wait until a consumer removes a request.':'Any new producer must wait until a consumer removes a request.'}`:
+    `${pc.buf.length} of ${pc.N} slots are used, so ${pc.N-pc.buf.length} more request(s) can be added. Nothing is lost: produced (${pc.produced}) − consumed (${pc.consumed}) = ${pc.buf.length} waiting.`;
+  $('pcBlocked').innerHTML=(pc.bp.length?`Blocked producers: ${pc.bp.map(x=>x.src+' ('+x.id+')').join(', ')}<br>`:'No blocked producers.<br>')+(pc.bc?`Blocked consumers: ${pc.bc}`:'No blocked consumers.');
+  $('pcLog').innerHTML=pc.log.map(l=>`<div class="${l[1]}">${l[0]}</div>`).join('');$('pcLog').scrollTop=1e9;
+  $('pcSteps').innerHTML='<tr><th>Step</th><th>Action</th><th>empty</th><th>full</th><th>Buffer</th></tr>'+pc.steps.map((s,i)=>`<tr><td>${i}</td><td>${s.a}</td><td>${s.e}</td><td>${s.f}</td><td>${s.b}</td></tr>`).join('');
+}
+
+/* ============ BANKER'S ============ */
+const BK_DEF={alloc:[[1,1,0],[2,0,1],[3,1,2],[1,1,1],[0,0,2]],max:[[4,3,3],[3,2,2],[7,2,3],[2,2,2],[3,3,4]]};
+let bk=JSON.parse(JSON.stringify(BK_DEF));
+function bkDraw(){
+  let h='<tr><th rowspan="2">Process</th><th colspan="3">Allocation</th><th colspan="3">Max</th></tr><tr>'+'<th>A</th><th>B</th><th>C</th>'.repeat(2)+'</tr>';
+  bk.alloc.forEach((_,i)=>{
+    h+=`<tr><td><b>T${i+1}</b>${nm('T'+(i+1))}</td>`+
+    [0,1,2].map(j=>`<td><input type="number" min="0" value="${bk.alloc[i][j]}" onchange="bk.alloc[${i}][${j}]=+this.value"></td>`).join('')+
+    [0,1,2].map(j=>`<td><input type="number" min="0" value="${bk.max[i][j]}" onchange="bk.max[${i}][${j}]=+this.value"></td>`).join('')+'</tr>'});
+  $('bkTbl').innerHTML=h;
+  $('bkP').innerHTML=bk.alloc.map((_,i)=>`<option value="${i}">T${i+1}</option>`).join('');
+}
+function bkReset(){bk=JSON.parse(JSON.stringify(BK_DEF));$('bkTA').value=10;$('bkTB').value=5;$('bkTC').value=8;bkDraw();$('bkOut').innerHTML='';$('bkReq').innerHTML=''}
+const vs=v=>v.join(' ');
+const le=(a,b)=>a.every((x,i)=>x<=b[i]);
+const addv=(a,b)=>a.map((x,i)=>x+b[i]);
+const subv=(a,b)=>a.map((x,i)=>x-b[i]);
+function bkState(){
+  const total=[+$('bkTA').value,+$('bkTB').value,+$('bkTC').value];
+  const sum=[0,1,2].map(j=>bk.alloc.reduce((a,r)=>a+r[j],0));
+  const avail=subv(total,sum);
+  const need=bk.max.map((r,i)=>subv(r,bk.alloc[i]));
+  return{total,sum,avail,need};
+}
+function safety(avail,alloc,need){
+  const n=alloc.length,fin=Array(n).fill(false);let work=avail.slice();const seq=[],steps=[];
+  let prog=true;
+  while(prog&&seq.length<n){
+    prog=false;
+    for(let i=0;i<n;i++){
+      if(fin[i])continue;
+      if(le(need[i],work)){
+        const before=work.slice();work=addv(work,alloc[i]);fin[i]=true;seq.push(i);prog=true;
+        steps.push({p:i,need:need[i],ok:true,before,after:work.slice()});
+      }else if(!steps.some(s=>s.p===i&&!s.ok&&s.work===vs(work))){
+        steps.push({p:i,need:need[i],ok:false,work:vs(work),before:work.slice()});
+      }
+    }
+  }
+  return{safe:seq.length===n,seq,steps,work};
+}
+function stepsHTML(r){
+  return '<table><tr><th>Order tried</th><th>Need</th><th>Fits Work?</th><th>Work before</th><th>Work after</th></tr>'+
+  r.steps.map(s=>`<tr><td>T${s.p+1}</td><td>${vs(s.need)}</td><td>${s.ok?'<span class="ok-t">Yes</span>':'<span class="bad-t">No – skip</span>'}</td><td>${vs(s.before)}</td><td>${s.ok?vs(s.after):'–'}</td></tr>`).join('')+'</table>';
+}
+function bkRun(){
+  const st=bkState();
+  if(st.avail.some(x=>x<0)){$('bkOut').innerHTML='<p class="bad-t">Total allocation exceeds total resources. Fix the data.</p>';return}
+  if(st.need.some(r=>r.some(x=>x<0))){$('bkOut').innerHTML='<p class="bad-t">Some Allocation is larger than Max. Fix the data.</p>';return}
+  const r=safety(st.avail,bk.alloc,st.need);
+  $('bkOut').innerHTML=`<h3>Need matrix (Max − Allocation)</h3>
+  <table><tr><th>Process</th><th>Allocation</th><th>Max</th><th>Need</th></tr>`+bk.alloc.map((a,i)=>`<tr><td>T${i+1}</td><td>${vs(a)}</td><td>${vs(bk.max[i])}</td><td>${vs(st.need[i])}</td></tr>`).join('')+`</table>
+  <span class="stat">Total allocated <b>${vs(st.sum)}</b></span><span class="stat">Available <b>${vs(st.avail)}</b></span>
+  <h3>Safety check (Work starts at ${vs(st.avail)})</h3>${stepsHTML(r)}
+  ${r.safe?`<p><span class="badge ok">SAFE STATE</span> Safe sequence: <b>&lt;${r.seq.map(i=>'T'+(i+1)).join(', ')}&gt;</b>. Final Work = ${vs(r.work)} ${vs(r.work)===vs(st.total)?'(equals total resources ✔)':''}</p>
+  <div class="plain"><b class="h">What this means</b>If the free resources (${vs(st.avail)}) are given out in the order ${r.seq.map(i=>'T'+(i+1)).join(' → ')}, each transaction can finish and hand its resources back, which makes the next one possible. So no deadlock can happen.</div>`:`<p><span class="badge bad">UNSAFE STATE</span> No sequence lets every transaction finish – deadlock is possible.</p>
+  <div class="plain"><b class="h">What this means</b>With only ${vs(st.avail)} free, no transaction can be sure of finishing, so the system could get stuck.</div>`}`;
+}
+function bkPreset(p,v){$('bkP').value=p;$('bkRA').value=v[0];$('bkRB').value=v[1];$('bkRC').value=v[2];bkRequest()}
+function bkRequest(){
+  const st=bkState(),i=+$('bkP').value,rq=[+$('bkRA').value,+$('bkRB').value,+$('bkRC').value];
+  const out=$('bkReq');
+  const head=`<p>T${i+1}${nm('T'+(i+1))} requests <b>${vs(rq)}</b> · Need ${vs(st.need[i])} · Available ${vs(st.avail)}</p>`;
+  if(!le(rq,st.need[i])){out.innerHTML=head+'<p><span class="badge bad">ERROR</span> Request exceeds the declared maximum claim.</p>';return}
+  if(!le(rq,st.avail)){const bad=['A','B','C'].filter((_,j)=>rq[j]>st.avail[j]).join(', ');out.innerHTML=head+`<p><span class="badge warn">WAITS</span> Request is more than Available (resource ${bad}). No safety check is needed.</p>`;return}
+  const av=subv(st.avail,rq),al=bk.alloc.map(r=>r.slice()),nd=st.need.map(r=>r.slice());
+  al[i]=addv(al[i],rq);nd[i]=subv(nd[i],rq);
+  const r=safety(av,al,nd);
+  out.innerHTML=head+`<p>Pretend allocation → Available = <b>${vs(av)}</b>, T${i+1} Allocation = ${vs(al[i])}, T${i+1} Need = <b>${vs(nd[i])}</b></p>${stepsHTML(r)}`+
+  (r.safe?`<p><span class="badge ok">GRANTED</span> Still safe. Sequence: &lt;${r.seq.map(k=>'T'+(k+1)).join(', ')}&gt;</p>`:`<p><span class="badge bad">DENIED</span> Unsafe state – no process has a Need that fits ${vs(av)}. The pretend allocation is undone and T${i+1} waits.</p><div class="plain"><b class="h">What this means</b>The resources are available right now, but giving them would leave only ${vs(av)} free, which is not enough for any transaction to finish. So T${i+1} is made to wait, and the others continue. That is how deadlock is avoided.</div>`);
+  if(r.safe)out.innerHTML+=`<div class="plain"><b class="h">What this means</b>The request is granted because after giving it, there is still an order in which everyone can finish.</div>`;
+}
+
+/* ============ MEMORY ============ */
+const MEM_B=[150,400,250,100,350],MEM_P=[200,120,80,300,220];
+let mb=MEM_B.slice(),mp=MEM_P.slice();
+function memDraw(){
+  $('memB').innerHTML='<tr><th>Block</th><th>Size</th><th></th></tr>'+mb.map((s,i)=>`<tr><td>B${i+1}</td><td><input type="number" min="1" value="${s}" onchange="mb[${i}]=Math.max(1,+this.value)"></td><td><button class="b r" onclick="mb.splice(${i},1);memDraw()">✕</button></td></tr>`).join('')+`<tr><th>Total</th><th colspan="2">${mb.reduce((a,b)=>a+b,0)} KB</th></tr>`;
+  $('memP').innerHTML='<tr><th>Process</th><th>Size</th><th></th></tr>'+mp.map((s,i)=>`<tr><td>T${i+1}${nm('T'+(i+1))}</td><td><input type="number" min="1" value="${s}" onchange="mp[${i}]=Math.max(1,+this.value)"></td><td><button class="b r" onclick="mp.splice(${i},1);memDraw()">✕</button></td></tr>`).join('')+`<tr><th>Total</th><th colspan="2">${mp.reduce((a,b)=>a+b,0)} KB</th></tr>`;
+}
+function memAddB(){mb.push(100);memDraw()}
+function memAddP(){mp.push(100);memDraw()}
+function memReset(){mb=MEM_B.slice();mp=MEM_P.slice();memDraw();$('memOut').innerHTML=''}
+function allocate(blocks,procs,algo){
+  const used=Array(blocks.length).fill(-1);const res=[];
+  procs.forEach((s,pi)=>{
+    let pick=-1;
+    for(let b=0;b<blocks.length;b++){
+      if(used[b]!==-1||blocks[b]<s)continue;
+      if(algo==='first'){pick=b;break}
+      if(pick===-1||blocks[b]<blocks[pick])pick=b;
+    }
+    if(pick>=0){used[pick]=pi;res.push({p:pi,b:pick,w:blocks[pick]-s})}else res.push({p:pi,b:-1,w:null});
+  });
+  const waste=res.reduce((a,r)=>a+(r.w||0),0);
+  const unplaced=res.filter(r=>r.b<0);
+  const freeBlocks=blocks.map((s,i)=>used[i]===-1?s:0);
+  return{res,used,waste,unplaced,freeBlocks};
+}
+function memView(title,algo){
+  const r=allocate(mb,mp,algo);
+  let h=`<h3>${title}</h3><table><tr><th>Process</th><th>Size</th><th>Block</th><th>Result</th><th>Waste (KB)</th></tr>`+
+  r.res.map(x=>`<tr><td>T${x.p+1}</td><td>${mp[x.p]}</td><td>${x.b>=0?'B'+(x.b+1):'—'}</td><td>${x.b>=0?'<span class="ok-t">Allocated</span>':'<span class="bad-t">Not placed – waits</span>'}</td><td>${x.w===null?'–':x.w}</td></tr>`).join('')+
+  `<tr><th colspan="4">Total internal fragmentation</th><th>${r.waste}</th></tr></table><h3>Memory layout</h3>`;
+  mb.forEach((s,b)=>{
+    const pi=r.used[b];const pct=pi>=0?mp[pi]/s*100:0;
+    h+=`<div class="mem"><div class="lbl"><span>Block ${b+1} · ${s} KB</span><span>${pi>=0?(s-mp[pi])+' KB free (internal)':s+' KB free (unused)'}</span></div><div class="bar"><div style="width:${pct}%;background:${pi>=0?col(pi):'transparent'}">${pi>=0?'T'+(pi+1)+' ('+mp[pi]+')':''}</div></div></div>`;
+  });
+  if(r.unplaced.length){
+    const free=r.freeBlocks.reduce((a,b)=>a+b,0);
+    h+=`<p class="warn-t">${r.unplaced.map(x=>'T'+(x.p+1)+' ('+mp[x.p]+' KB)').join(', ')} could not be placed. Free blocks left: ${r.freeBlocks.map((s,i)=>s?'B'+(i+1)+'='+s:'').filter(Boolean).join(', ')||'none'} (${free} KB total) – too small for the request (external fragmentation).</p>`;
+  }else h+='<p class="ok-t">All transactions placed, no unused block left.</p>';
+  return{html:h,r};
+}
+function memRun(){
+  if(!mb.length||!mp.length){$('memOut').innerHTML='<p class="bad-t">Add blocks and transactions.</p>';return}
+  const f=memView('First Fit','first'),b=memView('Best Fit','best');
+  let verdict;
+  const fp=f.r.unplaced.length,bp=b.r.unplaced.length;
+  if(bp<fp)verdict=`Best Fit places more transactions (${mp.length-bp} vs ${mp.length-fp}).`;
+  else if(fp<bp)verdict=`First Fit places more transactions (${mp.length-fp} vs ${mp.length-bp}).`;
+  else verdict=b.r.waste<f.r.waste?`Both place ${mp.length-fp} transactions; Best Fit wastes less (${b.r.waste} vs ${f.r.waste} KB).`:b.r.waste>f.r.waste?`Both place ${mp.length-fp} transactions; First Fit wastes less (${f.r.waste} vs ${b.r.waste} KB).`:'Both strategies behave the same on this data.';
+  $('memOut').innerHTML=`<div class="row"><div>${f.html}</div><div>${b.html}</div></div><p class="note"><b>Comparison:</b> First Fit waste ${f.r.waste} KB (${fp} not placed) · Best Fit waste ${b.r.waste} KB (${bp} not placed). ${verdict}</p>`;
+}
+
+/* ============ INTEGRATED PIPELINE ============ */
+const INT_DEF=[['T1',0,6,200,[0,1,0]],['T2',1,4,120,[1,0,1]],['T3',2,2,80,[1,0,0]],['T4',3,3,300,[1,1,1]],['T5',4,5,220,[1,1,0]]];
+let intData=JSON.parse(JSON.stringify(INT_DEF));
+function intRender(){
+  $('intTbl').innerHTML='<tr><th>Process</th><th>Arrival</th><th>Burst</th><th>Memory (KB)</th><th>Request A</th><th>Request B</th><th>Request C</th></tr>'+
+  intData.map((p,i)=>`<tr><td><b>${p[0]}</b>${nm(p[0])}</td>
+  <td><input type="number" min="0" value="${p[1]}" onchange="intData[${i}][1]=+this.value"></td>
+  <td><input type="number" min="1" value="${p[2]}" onchange="intData[${i}][2]=Math.max(1,+this.value)"></td>
+  <td><input type="number" min="1" value="${p[3]}" onchange="intData[${i}][3]=Math.max(1,+this.value)"></td>`+
+  [0,1,2].map(j=>`<td><input type="number" min="0" value="${p[4][j]}" onchange="intData[${i}][4][${j}]=+this.value"></td>`).join('')+'</tr>').join('');
+}
+function intReset(){intData=JSON.parse(JSON.stringify(INT_DEF));intRender();$('intOut').innerHTML=''}
+function intUnsafe(){intData[2][4]=[3,1,1];intRender()}
+function intRun(){
+  const N=Math.max(1,Math.min(8,+$('intN').value||3)),algo=$('intFit').value;
+  const out=[];
+  const order=intData.map((p,i)=>i).sort((a,b)=>intData[a][1]-intData[b][1]||a-b);
+  /* Stage 1: bounded buffer */
+  const buf=[],log1=[];let maxB=0;
+  const arrive=order.slice();
+  const consumeSeq=[];
+  // producers insert in arrival order, one consumer drains one when buffer is full
+  arrive.forEach(i=>{
+    if(buf.length>=N){const c=buf.shift();log1.push(`Buffer full → consumer takes ${intData[c][0]} so ${intData[i][0]} can enter`);consumeSeq.push(c)}
+    buf.push(i);maxB=Math.max(maxB,buf.length);log1.push(`${intData[i][0]} enters buffer (${buf.length}/${N})`);
+  });
+  while(buf.length){const c=buf.shift();consumeSeq.push(c);log1.push(`Consumer takes ${intData[c][0]}`)}
+  out.push(`<div class="card"><h3>Stage 1 – Bounded buffer (N = ${N})</h3><p class="note">${log1.join(' · ')}<br>Largest occupancy: ${maxB}/${N}. All ${consumeSeq.length} requests passed through with none lost. Processing order leaving the buffer: <b>${consumeSeq.map(i=>intData[i][0]).join(' → ')}</b></p></div>`);
+  /* Stage 2: memory */
+  const used=Array(mb.length).fill(-1),mem=[];
+  consumeSeq.forEach(i=>{
+    const s=intData[i][3];let pick=-1;
+    for(let b=0;b<mb.length;b++){
+      if(used[b]!==-1||mb[b]<s)continue;
+      if(algo==='first'){pick=b;break}
+      if(pick===-1||mb[b]<mb[pick])pick=b;
+    }
+    if(pick>=0)used[pick]=i;
+    mem.push({i,b:pick});
+  });
+  const memOk={};mem.forEach(m=>memOk[m.i]=m.b);
+  out.push(`<div class="card"><h3>Stage 2 – Memory (${algo==='best'?'Best Fit':'First Fit'}, partitions from the Memory tab: ${mb.join(', ')} KB)</h3><table><tr><th>Process</th><th>Size</th><th>Block</th><th>Waste</th><th>Status</th></tr>`+
+    mem.map(m=>`<tr><td>${intData[m.i][0]}</td><td>${intData[m.i][3]}</td><td>${m.b>=0?'B'+(m.b+1)+' ('+mb[m.b]+')':'—'}</td><td>${m.b>=0?mb[m.b]-intData[m.i][3]:'–'}</td><td>${m.b>=0?'<span class="ok-t">Placed</span>':'<span class="bad-t">Waits for memory</span>'}</td></tr>`).join('')+'</table></div>');
+  /* Stage 3: banker */
+  const st=bkState();let avail=st.avail.slice();const al=bk.alloc.map(r=>r.slice()),nd=st.need.map(r=>r.slice());
+  let h3=`<div class="card"><h3>Stage 3 – Banker's Algorithm</h3><p class="note">Starting Available = ${vs(avail)} (from the Banker's tab). Only transactions that obtained memory request resources.</p><table><tr><th>Process</th><th>Request</th><th>Decision</th><th>Reason</th><th>Available after</th></tr>`;
+  const admitted=[];
+  consumeSeq.forEach(i=>{
+    const name=intData[i][0],k=+name.slice(1)-1,rq=intData[i][4];
+    let dec,why;
+    if(memOk[i]<0){dec='<span class="badge warn">SKIPPED</span>';why='No memory block, cannot start'}
+    else if(k<0||k>=al.length||isNaN(k)){dec='<span class="badge warn">SKIPPED</span>';why='No row in the Banker matrix'}
+    else if(!le(rq,nd[k])){dec='<span class="badge bad">ERROR</span>';why='Exceeds declared maximum (Need '+vs(nd[k])+')'}
+    else if(!le(rq,avail)){dec='<span class="badge warn">WAITS</span>';why='Request > Available'}
+    else{
+      const av2=subv(avail,rq),al2=al.map(r=>r.slice()),nd2=nd.map(r=>r.slice());al2[k]=addv(al2[k],rq);nd2[k]=subv(nd2[k],rq);
+      const r=safety(av2,al2,nd2);
+      if(r.safe){avail=av2;al[k]=al2[k];nd[k]=nd2[k];dec='<span class="badge ok">GRANTED</span>';why='Safe sequence: &lt;'+r.seq.map(x=>'T'+(x+1)).join(', ')+'&gt;';admitted.push(i)}
+      else{dec='<span class="badge bad">DENIED</span>';why='Unsafe state – no Need fits '+vs(av2)+'; waits'}
+    }
+    h3+=`<tr><td>${name}</td><td>${vs(rq)}</td><td>${dec}</td><td style="text-align:left">${why}</td><td>${vs(avail)}</td></tr>`;
+  });
+  out.push(h3+'</table></div>');
+  /* Stage 4: CPU */
+  const waiting=intData.map((_,i)=>i).filter(i=>!admitted.includes(i));
+  let h4=`<div class="card"><h3>Stage 4 – CPU Scheduling (SJF vs FCFS on admitted transactions)</h3>`;
+  if(!admitted.length)h4+='<p class="bad-t">No transaction was admitted, so nothing reaches the CPU.</p>';
+  else{
+    const lst=admitted.map(i=>[intData[i][0],intData[i][1],intData[i][2]]).sort((a,b)=>a[1]-b[1]);
+    const names=intData.map(p=>p[0]);
+    const s=schedule(lst,'sjf'),f=schedule(lst,'fcfs');
+    h4+=`<p class="note">Ready queue (arrival order): ${lst.map(p=>p[0]).join(', ')}</p><b>SJF</b>${ganttHTML(s.order,names)}<b>FCFS</b>${ganttHTML(f.order,names)}
+    <table><tr><th>Process</th><th>CT</th><th>TAT</th><th>WT (SJF)</th></tr>${s.ps.map(p=>`<tr><td>${p.n}${nm(p.n)}</td><td>${p.ct}</td><td>${p.tat}</td><td>${p.wt}</td></tr>`).join('')}</table>
+    <span class="stat">SJF avg WT <b>${fix(s.avgW)}</b> · avg TAT <b>${fix(s.avgT)}</b></span><span class="stat">FCFS avg WT <b>${fix(f.avgW)}</b> · avg TAT <b>${fix(f.avgT)}</b></span>`;
+  }
+  if(waiting.length)h4+=`<p class="warn-t">Not scheduled yet (waiting for memory or a safe resource grant): ${waiting.map(i=>intData[i][0]).join(', ')}. They stay queued and are retried when resources are released, so the system avoids deadlock instead of risking it.</p>`;
+  else h4+='<p class="ok-t">All transactions were admitted: correct (synchronized), deadlock-free (avoidance), memory-placed and scheduled.</p>';
+  out.push(h4+'</div>');
+  $('intOut').innerHTML=out.join('');
+}
+
+/* ---------- init ---------- */
+cpuDraw();pcReset();bkDraw();memDraw();intRender();
+cpuRun();bkRun();memRun();
+/* row-by-row reveal animation for result tables */
+['bkOut','bkReq','memOut','intOut','cpuOut'].forEach(id=>{
+  new MutationObserver(()=>{
+    $(id).querySelectorAll('tr').forEach((tr,i)=>{tr.style.animation='rowin .4s both';tr.style.animationDelay=Math.min(i*0.07,1.4)+'s'});
+  }).observe($(id),{childList:true});
+});
+</script>
+</body>
+</html>
